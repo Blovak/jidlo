@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#17352c">
+    <meta name="description" content="Mobilní výběr dnešního jídla z kantýny ČS Antal.">
+    <title>Moje jídlo</title>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <nav class="topbar" aria-label="Hlavní navigace">
+          <a class="brand" href="./" aria-label="Moje jídlo – úvod">
+            <span class="brand-mark" aria-hidden="true">M</span>
+            <span>Moje jídlo</span>
+          </a>
+          <button class="icon-button" id="refresh-button" type="button" aria-label="Obnovit nabídku" title="Obnovit nabídku">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
+          </button>
+        </nav>
+
+        <div class="hero-copy">
+          <p class="eyebrow">Kantýna ČS Antal</p>
+          <h1>Co si dnes<br><em>dáte?</em></h1>
+          <p class="hero-date" id="menu-date">Načítám dnešní nabídku…</p>
+        </div>
+
+        <div class="hero-orbit orbit-one" aria-hidden="true"></div>
+        <div class="hero-orbit orbit-two" aria-hidden="true"></div>
+        <span class="hero-sprig" aria-hidden="true">✦</span>
+      </header>
+
+      <main>
+        <section class="notice is-hidden" id="setup-notice" aria-labelledby="setup-title">
+          <span class="notice-icon" aria-hidden="true">i</span>
+          <div>
+            <h2 id="setup-title">Dokončete propojení</h2>
+            <p>V souboru <code>config.js</code> je potřeba nastavit adresu nasazeného Apps Script API.</p>
+            <a href="README.md">Otevřít návod</a>
+          </div>
+        </section>
+
+        <section class="menu-section" aria-labelledby="menu-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow dark">Dnešní menu</p>
+              <h2 id="menu-heading">Vyberte si</h2>
+            </div>
+            <span class="live-pill"><span></span> aktuální</span>
+          </div>
+
+          <div class="loading-grid" id="loading-state" aria-live="polite" aria-label="Načítání nabídky">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+          </div>
+
+          <div class="empty-state is-hidden" id="empty-state">
+            <span aria-hidden="true">🍽️</span>
+            <h3>Dnes tu zatím nic není</h3>
+            <p>Menu ještě nebylo načteno. Zkuste nabídku za chvíli obnovit.</p>
+          </div>
+
+          <div class="error-state is-hidden" id="error-state" role="alert">
+            <h3>Nabídku se nepodařilo načíst</h3>
+            <p id="error-message">Zkontrolujte připojení a zkuste to znovu.</p>
+            <button class="secondary-button" id="retry-button" type="button">Zkusit znovu</button>
+          </div>
+
+          <div class="menu-groups" id="menu-groups"></div>
+        </section>
+      </main>
+
+      <aside class="selection-bar" id="selection-bar" aria-live="polite">
+        <div class="selection-copy">
+          <span id="selection-count">0 položek</span>
+          <strong id="selection-total">0 Kč</strong>
+        </div>
+        <button class="primary-button" id="save-button" type="button" disabled>
+          <span>Uložit výběr</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </aside>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="config.js"></script>
+    <script src="app.js" defer></script>
+  </body>
+</html>

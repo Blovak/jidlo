@@ -1,0 +1,19 @@
+{
+  "name": "Moje jídlo – ČS Antal",
+  "short_name": "Moje jídlo",
+  "description": "Výběr dnešního jídla z kantýny ČS Antal.",
+  "lang": "cs",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1e9",
+  "theme_color": "#17352c",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
