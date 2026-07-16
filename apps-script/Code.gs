@@ -12,11 +12,11 @@ const ORDER_HEADERS = Object.freeze([
   'Datum menu',
   'Sekce',
   'Položka',
+  'Odhad energie (kcal)',
   'Alergeny',
   'Cena (Kč)',
   'Klíč položky',
-  'ID výběru',
-  'Odhad energie (kcal)'
+  'ID výběru'
 ]);
 
 /**
@@ -146,17 +146,17 @@ function saveOrder_(payload) {
       parseDateKey_(item.date),
       item.section,
       item.name,
+      isValidEnergyEstimate_(item.estimatedEnergyKcal) ? item.estimatedEnergyKcal : '',
       item.allergens,
       item.price,
       item.id,
-      requestId,
-      isValidEnergyEstimate_(item.estimatedEnergyKcal) ? item.estimatedEnergyKcal : ''
+      requestId
     ]);
 
     orders.getRange(orders.getLastRow() + 1, 1, rows.length, ORDER_HEADERS.length).setValues(rows);
     orders.getRange(2, 1, orders.getLastRow() - 1, 1).setNumberFormat('yyyy-mm-dd hh:mm:ss');
     orders.getRange(2, 2, orders.getLastRow() - 1, 1).setNumberFormat('yyyy-mm-dd');
-    orders.getRange(2, 9, orders.getLastRow() - 1, 1).setNumberFormat('0 "kcal"');
+    orders.getRange(2, 5, orders.getLastRow() - 1, 1).setNumberFormat('0 "kcal"');
 
     return {ok: true, requestId, savedCount: rows.length};
   } finally {
@@ -183,7 +183,7 @@ function findRequest_(sheet, requestId) {
   if (sheet.getLastRow() < 2) return false;
   return Boolean(
     sheet
-      .getRange(2, 8, sheet.getLastRow() - 1, 1)
+      .getRange(2, 9, sheet.getLastRow() - 1, 1)
       .createTextFinder(requestId)
       .matchEntireCell(true)
       .findNext()
@@ -209,15 +209,23 @@ function ensureOrdersSheet_(spreadsheet) {
       .setBackground('#e8eaed');
     sheet.autoResizeColumns(1, ORDER_HEADERS.length);
   } else {
-    const energyHeader = sheet.getRange(1, 9);
-    if (!String(energyHeader.getValue() || '').trim()) {
+    let headers = sheet.getRange(1, 1, 1, ORDER_HEADERS.length).getDisplayValues()[0];
+    if (!headers.includes('Odhad energie (kcal)')) {
+      const energyHeader = sheet.getRange(1, 9);
       sheet.getRange(1, 8).copyTo(energyHeader, {formatOnly: true});
-      energyHeader.setValue(ORDER_HEADERS[8]);
-      sheet.autoResizeColumn(9);
+      energyHeader.setValue('Odhad energie (kcal)');
+      headers = sheet.getRange(1, 1, 1, ORDER_HEADERS.length).getDisplayValues()[0];
     }
 
+    if (headers[4] === 'Alergeny' && headers[8] === 'Odhad energie (kcal)') {
+      sheet.moveColumns(sheet.getRange(1, 9, sheet.getMaxRows(), 1), 5);
+    }
+
+    sheet.getRange(1, 1, 1, ORDER_HEADERS.length).setValues([ORDER_HEADERS]);
+    sheet.autoResizeColumn(5);
+
     if (sheet.getLastRow() > 1) {
-      sheet.getRange(2, 9, sheet.getLastRow() - 1, 1).setNumberFormat('0 "kcal"');
+      sheet.getRange(2, 5, sheet.getLastRow() - 1, 1).setNumberFormat('0 "kcal"');
     }
   }
 

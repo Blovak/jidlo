@@ -64,11 +64,11 @@ List `Moje jidlo` obsahuje sloupce:
 | Datum menu | Datum, ke kterému patří nabídka |
 | Sekce | Polévka, hotová jídla, buffet apod. |
 | Položka | Název jídla |
+| Odhad energie (kcal) | Orientační AI odhad převzatý z řádku jídla v listu `Historie` |
 | Alergeny | Čísla alergenů převzatá z menu |
 | Cena (Kč) | Cena položky |
 | Klíč položky | Stabilní identifikátor řádku historie |
 | ID výběru | Identifikátor jednoho potvrzení pro deduplikaci |
-| Odhad energie (kcal) | Orientační AI odhad převzatý z řádku jídla v listu `Historie` |
 
 ## Lokální spuštění
 
