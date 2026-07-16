@@ -68,6 +68,7 @@ List `Moje jidlo` obsahuje sloupce:
 | Cena (Kč) | Cena položky |
 | Klíč položky | Stabilní identifikátor řádku historie |
 | ID výběru | Identifikátor jednoho potvrzení pro deduplikaci |
+| Odhad energie (kcal) | Orientační AI odhad převzatý z řádku jídla v listu `Historie` |
 
 ## Lokální spuštění
 

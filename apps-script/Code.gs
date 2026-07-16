@@ -15,7 +15,8 @@ const ORDER_HEADERS = Object.freeze([
   'Alergeny',
   'Cena (Kč)',
   'Klíč položky',
-  'ID výběru'
+  'ID výběru',
+  'Odhad energie (kcal)'
 ]);
 
 /**
@@ -148,12 +149,14 @@ function saveOrder_(payload) {
       item.allergens,
       item.price,
       item.id,
-      requestId
+      requestId,
+      isValidEnergyEstimate_(item.estimatedEnergyKcal) ? item.estimatedEnergyKcal : ''
     ]);
 
     orders.getRange(orders.getLastRow() + 1, 1, rows.length, ORDER_HEADERS.length).setValues(rows);
     orders.getRange(2, 1, orders.getLastRow() - 1, 1).setNumberFormat('yyyy-mm-dd hh:mm:ss');
     orders.getRange(2, 2, orders.getLastRow() - 1, 1).setNumberFormat('yyyy-mm-dd');
+    orders.getRange(2, 9, orders.getLastRow() - 1, 1).setNumberFormat('0 "kcal"');
 
     return {ok: true, requestId, savedCount: rows.length};
   } finally {
@@ -191,6 +194,13 @@ function ensureOrdersSheet_(spreadsheet) {
   let sheet = spreadsheet.getSheetByName(WEBAPP_CONFIG.ordersSheet);
   if (!sheet) sheet = spreadsheet.insertSheet(WEBAPP_CONFIG.ordersSheet);
 
+  if (sheet.getMaxColumns() < ORDER_HEADERS.length) {
+    sheet.insertColumnsAfter(
+      sheet.getMaxColumns(),
+      ORDER_HEADERS.length - sheet.getMaxColumns()
+    );
+  }
+
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, ORDER_HEADERS.length).setValues([ORDER_HEADERS]);
     sheet.setFrozenRows(1);
@@ -198,6 +208,17 @@ function ensureOrdersSheet_(spreadsheet) {
       .setFontWeight('bold')
       .setBackground('#e8eaed');
     sheet.autoResizeColumns(1, ORDER_HEADERS.length);
+  } else {
+    const energyHeader = sheet.getRange(1, 9);
+    if (!String(energyHeader.getValue() || '').trim()) {
+      sheet.getRange(1, 8).copyTo(energyHeader, {formatOnly: true});
+      energyHeader.setValue(ORDER_HEADERS[8]);
+      sheet.autoResizeColumn(9);
+    }
+
+    if (sheet.getLastRow() > 1) {
+      sheet.getRange(2, 9, sheet.getLastRow() - 1, 1).setNumberFormat('0 "kcal"');
+    }
   }
 
   return sheet;
