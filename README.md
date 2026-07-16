@@ -9,6 +9,7 @@ Produkční adresa frontendu: <https://blovak.github.io/jidlo/>
 - GitHub Pages hostuje statický frontend bez serveru.
 - Google Apps Script funguje jako malé API nad tabulkou.
 - `GET action=menu` vrací dnešní placené položky rozdělené podle sekcí.
+- Chybějící energetické hodnoty odhadne dávkově OpenAI API a backend je po zbytek dne uchová v trvalé cache.
 - `POST action=save` uloží každé vybrané jídlo jako samostatný řádek.
 - `GET action=status` ověří, že byl zápis opravdu dokončen.
 - ID výběru a zámek Apps Scriptu brání duplicitám při opakovaném požadavku.
@@ -20,14 +21,18 @@ Produkční adresa frontendu: <https://blovak.github.io/jidlo/>
 3. Přidejte nový soubor skriptu, například `WebApp.gs`.
 4. Zkopírujte do něj celý obsah souboru [`apps-script/Code.gs`](apps-script/Code.gs). Kód může být ve stejném projektu jako existující automatický import menu; používá vlastní konstantu `WEBAPP_CONFIG`, aby se s importem nekřížil.
 5. V editoru vyberte funkci `setup`, klikněte na **Spustit** a potvrďte oprávnění. Tím vznikne list `Moje jidlo` s hlavičkami.
-6. Klikněte na **Nasadit → Nové nasazení**.
-7. Jako typ zvolte **Webová aplikace**.
-8. Nastavte:
+6. V **Nastavení projektu → Vlastnosti skriptu** přidejte `OPENAI_API_KEY` s API klíčem. Klíč nikdy nevkládejte do `config.js` ani do repozitáře.
+7. Volitelně přidejte `OPENAI_MODEL`; výchozí model je `gpt-5.6-luna`.
+8. Klikněte na **Nasadit → Nové nasazení**.
+9. Jako typ zvolte **Webová aplikace**.
+10. Nastavte:
    - **Spouštět jako:** Já
    - **Kdo má přístup:** Kdokoli
-9. Dokončete nasazení a zkopírujte adresu webové aplikace končící `/exec`.
+11. Dokončete nasazení a zkopírujte adresu webové aplikace končící `/exec`.
 
 > Při každé pozdější změně backendu vytvořte přes **Nasadit → Spravovat nasazení → Upravit** novou verzi. URL `/exec` zůstane stejná.
+
+Energetická hodnota je orientační AI odhad typické porce podle názvu, sekce a alergenů, nikoli laboratorní nebo výrobcem garantovaný údaj. Když API klíč chybí nebo OpenAI dočasně selže, jídelníček se načte dál, pouze bez kcal. Odhady se ukládají do Script Properties podle data a ID jídla; struktura listu `Historie` se nemění.
 
 ## 2. Propojení frontendu
 

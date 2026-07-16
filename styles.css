@@ -378,11 +378,18 @@ main {
   line-height: 1.42;
 }
 
-.allergens {
+.allergens,
+.energy-estimate {
   display: inline-block;
   margin-top: 8px;
+  margin-right: 10px;
   color: var(--muted);
   font-size: 0.75rem;
+}
+
+.energy-estimate {
+  color: var(--terracotta);
+  font-weight: 700;
 }
 
 .dish-price {

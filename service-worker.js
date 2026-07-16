@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jidlo-shell-v1';
+const CACHE_NAME = 'jidlo-shell-v2';
 const SHELL = [
   './',
   './index.html',

@@ -30,7 +30,7 @@ const apiConfigured = Boolean(
   /\/exec(?:\?|$)/.test(config.API_URL)
 );
 
-function jsonp(parameters, timeout = 15000) {
+function jsonp(parameters, timeout = 30000) {
   return new Promise((resolve, reject) => {
     const callbackName = `cb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement('script');
@@ -139,6 +139,15 @@ function createDishCard(item) {
   const name = document.createElement('strong');
   name.textContent = item.name;
   copy.append(name);
+
+  const estimatedEnergyKcal = Number(item.estimatedEnergyKcal);
+  if (Number.isFinite(estimatedEnergyKcal) && estimatedEnergyKcal > 0) {
+    const energy = document.createElement('span');
+    energy.className = 'energy-estimate';
+    energy.textContent = `AI odhad: ≈ ${formatEnergy(estimatedEnergyKcal)}`;
+    energy.title = 'Orientační energetická hodnota typické porce odhadnutá pomocí AI.';
+    copy.append(energy);
+  }
 
   if (item.allergens) {
     const allergens = document.createElement('span');
@@ -272,6 +281,10 @@ function formatPrice(value) {
     currency: 'CZK',
     maximumFractionDigits: 0
   }).format(Number(value) || 0);
+}
+
+function formatEnergy(value) {
+  return `${new Intl.NumberFormat('cs-CZ', {maximumFractionDigits: 0}).format(value)} kcal`;
 }
 
 function itemCountLabel(count) {
