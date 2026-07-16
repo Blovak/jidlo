@@ -9,7 +9,7 @@ Produkční adresa frontendu: <https://blovak.github.io/jidlo/>
 - GitHub Pages hostuje statický frontend bez serveru.
 - Google Apps Script funguje jako malé API nad tabulkou.
 - `GET action=menu` vrací dnešní placené položky rozdělené podle sekcí.
-- Chybějící energetické hodnoty odhadne dávkově OpenAI API a backend je po zbytek dne uchová v trvalé cache.
+- Chybějící energetické hodnoty odhadne dávkově OpenAI API a uloží je ke konkrétním jídlům do listu `Historie`.
 - `POST action=save` uloží každé vybrané jídlo jako samostatný řádek.
 - `GET action=status` ověří, že byl zápis opravdu dokončen.
 - ID výběru a zámek Apps Scriptu brání duplicitám při opakovaném požadavku.
@@ -32,7 +32,7 @@ Produkční adresa frontendu: <https://blovak.github.io/jidlo/>
 
 > Při každé pozdější změně backendu vytvořte přes **Nasadit → Spravovat nasazení → Upravit** novou verzi. URL `/exec` zůstane stejná.
 
-Energetická hodnota je orientační AI odhad typické porce podle názvu, sekce a alergenů, nikoli laboratorní nebo výrobcem garantovaný údaj. Když API klíč chybí nebo OpenAI dočasně selže, jídelníček se načte dál, pouze bez kcal. Odhady se ukládají do Script Properties podle data a ID jídla; struktura listu `Historie` se nemění.
+Energetická hodnota je orientační AI odhad typické porce podle názvu, sekce a alergenů, nikoli laboratorní nebo výrobcem garantovaný údaj. Když API klíč chybí nebo OpenAI dočasně selže, jídelníček se načte dál, pouze bez dosud nedopočítaných kcal. Odhady se ukládají jako čísla do sloupce J `Odhad energie (kcal)` v listu `Historie`; formát buňky k nim přidává čitelnou jednotku `kcal`.
 
 ## 2. Propojení frontendu
 

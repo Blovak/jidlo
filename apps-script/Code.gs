@@ -7,9 +7,6 @@ const WEBAPP_CONFIG = Object.freeze({
   openAiModel: 'gpt-5.6-luna'
 });
 
-const ENERGY_CACHE_DATE_PROPERTY = 'ENERGY_ESTIMATES_DATE';
-const ENERGY_CACHE_JSON_PROPERTY = 'ENERGY_ESTIMATES_JSON';
-
 const ORDER_HEADERS = Object.freeze([
   'Datum a čas výběru',
   'Datum menu',
@@ -84,16 +81,23 @@ function getTodayMenu_(includeEnergyEstimates) {
     return {ok: true, date: todayKey_(), items: []};
   }
 
-  const values = history.getRange(2, 1, history.getLastRow() - 1, 9).getValues();
+  ensureEnergyColumn_(history);
+  const values = history.getRange(2, 1, history.getLastRow() - 1, 10).getValues();
   const today = todayKey_();
   const items = values
-    .map(historyRowToItem_)
+    .map((row, index) => {
+      const item = historyRowToItem_(row);
+      item.historyRow = index + 2;
+      return item;
+    })
     .filter(item => item.date === today && item.name && item.price !== '')
     .sort((a, b) => a.order - b.order);
 
   if (includeEnergyEstimates && items.length) {
-    addEnergyEstimates_(items, today);
+    addEnergyEstimates_(history, items, today);
   }
+
+  items.forEach(item => delete item.historyRow);
 
   return {
     ok: true,
@@ -208,39 +212,53 @@ function historyRowToItem_(row) {
     name: String(row[2] || ''),
     allergens: String(row[3] || ''),
     price: row[4] === '' ? '' : Number(row[4]),
-    order: Number(row[5]) || 0
+    order: Number(row[5]) || 0,
+    estimatedEnergyKcal: isValidEnergyEstimate_(row[9]) ? Math.round(Number(row[9])) : null
   };
 }
 
 /**
- * Doplní orientační kcal z trvalé denní cache. Chyba AI nikdy nezablokuje menu.
+ * Doplní chybějící kcal a uloží je ke konkrétním řádkům listu Historie.
+ * Chyba AI nikdy nezablokuje načtení samotného menu.
  */
-function addEnergyEstimates_(items, dateKey) {
-  let estimates = readEnergyEstimates_(dateKey);
-  applyEnergyEstimates_(items, estimates);
-
-  let missing = items.filter(item => !isValidEnergyEstimate_(estimates[item.id]));
-  if (!missing.length || !getOpenAiApiKey_()) return;
-
+function addEnergyEstimates_(history, items, dateKey) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(8000)) return;
 
   try {
-    // Jiný souběžný požadavek mohl odhady mezitím doplnit.
-    estimates = readEnergyEstimates_(dateKey);
-    missing = items.filter(item => !isValidEnergyEstimate_(estimates[item.id]));
+    const rowCount = history.getLastRow() - 1;
+    const energyRange = history.getRange(2, 10, rowCount, 1);
+    const energyValues = energyRange.getValues();
 
-    if (missing.length) {
-      const generated = estimateEnergyWithOpenAi_(missing);
-      generated.forEach(estimate => {
-        if (isValidEnergyEstimate_(estimate.estimatedEnergyKcal)) {
-          estimates[estimate.id] = Math.round(estimate.estimatedEnergyKcal);
-        }
-      });
-      writeEnergyEstimates_(dateKey, estimates);
-    }
+    // Nejdřív znovu načteme Sheet, protože jiný požadavek mohl hodnoty doplnit.
+    items.forEach(item => {
+      const stored = energyValues[item.historyRow - 2][0];
+      item.estimatedEnergyKcal = isValidEnergyEstimate_(stored)
+        ? Math.round(Number(stored))
+        : null;
+    });
 
-    applyEnergyEstimates_(items, estimates);
+    migrateLegacyEnergyCache_(items, dateKey, energyValues, energyRange);
+
+    const missing = items.filter(item => !isValidEnergyEstimate_(item.estimatedEnergyKcal));
+    if (!missing.length || !getOpenAiApiKey_()) return;
+
+    const generatedById = new Map(
+      estimateEnergyWithOpenAi_(missing).map(estimate => [String(estimate.id), estimate])
+    );
+    let changed = false;
+
+    missing.forEach(item => {
+      const estimate = generatedById.get(item.id);
+      if (!estimate || !isValidEnergyEstimate_(estimate.estimatedEnergyKcal)) return;
+
+      const value = Math.round(Number(estimate.estimatedEnergyKcal));
+      item.estimatedEnergyKcal = value;
+      energyValues[item.historyRow - 2][0] = value;
+      changed = true;
+    });
+
+    if (changed) writeEnergyValues_(energyRange, energyValues);
   } catch (error) {
     console.error('Odhad energetických hodnot selhal: ' + (error.message || error));
   } finally {
@@ -248,31 +266,46 @@ function addEnergyEstimates_(items, dateKey) {
   }
 }
 
-function applyEnergyEstimates_(items, estimates) {
-  items.forEach(item => {
-    item.estimatedEnergyKcal = isValidEnergyEstimate_(estimates[item.id])
-      ? Math.round(estimates[item.id])
-      : null;
-  });
-}
-
-function readEnergyEstimates_(dateKey) {
-  const properties = PropertiesService.getScriptProperties();
-  if (properties.getProperty(ENERGY_CACHE_DATE_PROPERTY) !== dateKey) return {};
-
-  try {
-    const parsed = JSON.parse(properties.getProperty(ENERGY_CACHE_JSON_PROPERTY) || '{}');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch (_) {
-    return {};
+function ensureEnergyColumn_(history) {
+  const header = history.getRange(1, 10);
+  if (!String(header.getValue() || '').trim()) {
+    header
+      .setValue('Odhad energie (kcal)')
+      .setFontWeight('bold');
+    history.autoResizeColumn(10);
   }
 }
 
-function writeEnergyEstimates_(dateKey, estimates) {
-  PropertiesService.getScriptProperties().setProperties({
-    [ENERGY_CACHE_DATE_PROPERTY]: dateKey,
-    [ENERGY_CACHE_JSON_PROPERTY]: JSON.stringify(estimates)
-  });
+function migrateLegacyEnergyCache_(items, dateKey, energyValues, energyRange) {
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty('ENERGY_ESTIMATES_DATE') !== dateKey) return;
+
+  try {
+    const legacy = JSON.parse(properties.getProperty('ENERGY_ESTIMATES_JSON') || '{}');
+    let changed = false;
+
+    items.forEach(item => {
+      if (isValidEnergyEstimate_(item.estimatedEnergyKcal)) return;
+      if (!isValidEnergyEstimate_(legacy[item.id])) return;
+
+      const value = Math.round(Number(legacy[item.id]));
+      item.estimatedEnergyKcal = value;
+      energyValues[item.historyRow - 2][0] = value;
+      changed = true;
+    });
+
+    if (changed) writeEnergyValues_(energyRange, energyValues);
+  } catch (error) {
+    console.error('Převod původní cache energetických hodnot selhal: ' + (error.message || error));
+  } finally {
+    properties.deleteProperty('ENERGY_ESTIMATES_DATE');
+    properties.deleteProperty('ENERGY_ESTIMATES_JSON');
+  }
+}
+
+function writeEnergyValues_(range, values) {
+  range.setValues(values);
+  range.setNumberFormat('0 "kcal"');
 }
 
 function getOpenAiApiKey_() {
